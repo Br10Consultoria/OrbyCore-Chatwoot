@@ -69,6 +69,9 @@ chmod +x scripts/*.sh
 
 ## Configuração inicial no Chatwoot
 
+O procedimento completo, incluindo associação automática do assinante, está em
+[docs/PASSO-A-PASSO-INTEGRACAO.md](docs/PASSO-A-PASSO-INTEGRACAO.md).
+
 1. Acesse `https://<CHATWOOT_DOMAIN>` e crie o administrador.
 2. Crie uma caixa **Website** chamada `Portal SAC`.
 3. Ative **Identity Validation** e copie o HMAC Token para `CHATWOOT_INBOX_HMAC_TOKEN`.
@@ -148,4 +151,3 @@ Antes de produção, substitua `latest-ce` por uma versão específica `vX.Y.Z-c
 - [ ] componente do widget no Portal SAC;
 - [ ] teste ponta a ponta com Chatwoot e OrbySync reais;
 - [ ] homologação de backup/restauração e carga.
-
