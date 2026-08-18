@@ -1,0 +1,19 @@
+{$CHATWOOT_DOMAIN} {
+	encode zstd gzip
+
+	handle_path /orby-bridge/* {
+		reverse_proxy bridge:8081
+	}
+
+	handle {
+		reverse_proxy rails:3000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+

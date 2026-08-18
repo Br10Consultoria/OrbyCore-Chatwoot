@@ -1,0 +1,29 @@
+[project]
+name = "orbycore-chatwoot-bridge"
+version = "0.1.0"
+description = "Integração segura entre OrbyCore e Chatwoot Community"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.116.1",
+  "httpx==0.28.1",
+  "pydantic-settings==2.10.1",
+  "redis==6.4.0",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.1", "pytest-asyncio==1.1.0", "ruff==0.12.8"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.setuptools]
+package-dir = {"" = "bridge"}
+
+[tool.setuptools.packages.find]
+where = ["bridge"]
