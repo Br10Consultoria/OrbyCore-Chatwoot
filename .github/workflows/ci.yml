@@ -22,5 +22,7 @@ jobs:
         run: bash -n scripts/*.sh
       - name: Validar Compose
         run: cp .env.example .env && docker compose config --quiet
+      - name: Validar Caddy
+        run: docker run --rm -e CHATWOOT_DOMAIN=chat.example.com -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10-alpine caddy validate --config /etc/caddy/Caddyfile
       - name: Construir bridge e worker
         run: docker compose build bridge bridge-worker

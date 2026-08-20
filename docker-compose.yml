@@ -124,6 +124,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: ["python", "-m", "app.worker"]
+    # O worker processa a fila Redis e, por projeto, nao expoe uma porta HTTP.
+    # Desativa o HEALTHCHECK /ready herdado da imagem compartilhada com o bridge.
+    healthcheck:
+      disable: true
     networks: [internal]
     depends_on:
       rails:

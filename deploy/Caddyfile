@@ -1,6 +1,10 @@
 {$CHATWOOT_DOMAIN} {
 	encode zstd gzip
 
+	# Recusa sondagens automatizadas por arquivos de configuracao e repositorios.
+	@sensitive path *.env* */.git/* */.svn/* */.hg/* */.DS_Store
+	respond @sensitive 404
+
 	handle_path /orby-bridge/* {
 		reverse_proxy bridge:8081
 	}
