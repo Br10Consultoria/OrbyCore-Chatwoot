@@ -15,7 +15,9 @@ x-chatwoot-base: &chatwoot-base
 services:
   rails:
     <<: *chatwoot-base
-    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+    # Um encerramento abrupto pode deixar server.pid no container e prender o
+    # Rails em restart loop. O PID e temporario; remova-o antes de subir o Puma.
+    command: ["sh", "-lc", "rm -f /app/tmp/pids/server.pid && exec bundle exec rails s -p 3000 -b 0.0.0.0"]
     environment:
       RAILS_ENV: production
       NODE_ENV: production
