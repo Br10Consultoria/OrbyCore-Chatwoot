@@ -15,13 +15,19 @@ class BaseClient:
 
     async def request(self, method: str, url: str, **kwargs: Any) -> Any:
         timeout = httpx.Timeout(self.settings.request_timeout_seconds)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.request(method, url, **kwargs)
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.request(method, url, **kwargs)
+        except httpx.RequestError as exc:
+            raise UpstreamError(f"Falha de rede ao acessar {exc.request.url.host}") from exc
         if response.status_code >= 400:
             raise UpstreamError(f"Upstream respondeu HTTP {response.status_code}")
         if not response.content:
             return {}
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise UpstreamError("Upstream retornou JSON inválido") from exc
 
 
 class ChatwootClient(BaseClient):
@@ -67,6 +73,8 @@ class OrbyCoreClient(BaseClient):
             f"customers/{payload['customer_id']}/equipment/{payload['device_id']}/wifi/"
         )
         return await self.request(
-            "PATCH", url, headers={**self.headers, "X-Tenant-ID": payload["tenant_id"]}, json=payload
+            "PATCH",
+            url,
+            headers={**self.headers, "X-Tenant-ID": payload["tenant_id"]},
+            json=payload,
         )
-

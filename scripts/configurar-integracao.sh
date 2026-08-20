@@ -60,7 +60,7 @@ set_env CHATWOOT_INBOX_IDENTIFIER "$website_token"
 set_env CHATWOOT_INBOX_HMAC_TOKEN "$hmac_token"
 
 docker compose config --quiet
-docker compose up -d --build --force-recreate bridge caddy
+docker compose up -d --build --force-recreate bridge bridge-worker caddy
 
 domain="$(grep '^CHATWOOT_DOMAIN=' .env | cut -d= -f2-)"
 webhook_token="$(grep '^CHATWOOT_WEBHOOK_TOKEN=' .env | cut -d= -f2-)"
@@ -71,7 +71,7 @@ echo "https://${domain}/orby-bridge/v1/chatwoot/webhooks/${webhook_token}"
 echo "Eventos: message_created, conversation_created e conversation_status_changed."
 echo ""
 echo "Validação local:"
-echo "curl -fsS https://${domain}/orby-bridge/health"
+echo "curl -fsS https://${domain}/orby-bridge/ready"
 echo ""
 echo "Para habilitar o widget, copie BRIDGE_SERVICE_TOKEN do .env desta VM para"
 echo "CHATWOOT_BRIDGE_SERVICE_TOKEN no .env do OrbyCore e configure:"

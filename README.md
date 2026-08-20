@@ -3,7 +3,8 @@
 Base self-hosted para atendimento humano do OrbyCore usando Chatwoot Community Edition, com automação limitada e segura para:
 
 1. segunda via de boleto/PIX;
-2. alteração de nome ou senha do Wi-Fi pela tela segura do Portal SAC.
+2. situação dos equipamentos vinculados;
+3. alteração de nome ou senha do Wi-Fi pela tela segura do Portal SAC.
 
 Qualquer outro assunto segue para um atendente humano. O bridge não tenta responder contratos, cancelamentos, suporte técnico ou outros temas automaticamente.
 
@@ -36,7 +37,8 @@ Nenhum banco, Redis ou bridge é publicado diretamente na internet.
 - identidade do cliente assinada com HMAC do Inbox;
 - identificador estável `orby:<tenant_id>:<customer_id>`;
 - endpoint de identidade acessível somente com token de serviço;
-- webhook em caminho com token aleatório e idempotência Redis por evento;
+- webhook em caminho com token aleatório, validação de conta/inbox e idempotência por evento;
+- fila Redis persistente, retentativas, recuperação após reinício e dead-letter;
 - isolamento de tenant exigido no contrato da API OrbyCore;
 - senha Wi-Fi nunca é digitada nem armazenada na conversa;
 - autosserviço só reage aos comandos previstos;
@@ -86,16 +88,17 @@ https://<CHATWOOT_DOMAIN>/orby-bridge/v1/chatwoot/webhooks/<CHATWOOT_WEBHOOK_TOK
 
 Assine pelo menos `message_created`, `conversation_created` e `conversation_status_changed`.
 
-8. Reinicie o bridge após alterar o `.env`:
+8. Reinicie o bridge e o worker após alterar o `.env`:
 
 ```bash
-docker compose up -d --build bridge
+docker compose up -d --build bridge bridge-worker
 ```
 
 ## Comandos do autosserviço
 
-- `/menu`: apresenta as duas opções disponíveis;
+- `/menu`: apresenta as opções disponíveis;
 - `/boleto`, `boleto`, `pix` ou `segunda via`: consulta as faturas abertas no OrbyCore;
+- `/status`: consulta no OrbyCore a situação resumida dos equipamentos do cliente;
 - `/wifi`, `wifi` ou `senha wifi`: envia o cliente para a tela segura do Portal SAC.
 
 Mensagens diferentes não recebem resposta automática e permanecem na fila humana.
@@ -110,7 +113,7 @@ Header: `Authorization: Bearer <BRIDGE_SERVICE_TOKEN>`
 
 Esta rota deve ser chamada pelo backend OrbyCore, nunca diretamente pelo navegador.
 
-### Alteração Wi-Fi segura
+### Alteração Wi-Fi segura (uso servidor a servidor)
 
 `POST /orby-bridge/v1/portal/wifi`
 
@@ -131,23 +134,23 @@ pytest -q
 ## Atualização e backup
 
 ```bash
-./scripts/backup.sh
 ./scripts/atualizar.sh
 ```
 
-Antes de produção, substitua `latest-ce` por uma versão específica `vX.Y.Z-ce`, valide as notas de versão e teste a restauração do PostgreSQL.
+`atualizar.sh` exige uma instalação existente, cria e verifica backup do PostgreSQL e dos anexos antes do `git pull`, aplica migrações e recria os serviços sem executar novamente o instalador. Para restaurar: `./scripts/restaurar.sh backups/AAAAMMDD-HHMMSS`.
 
 ## Estado do MVP
 
 - [x] composição self-hosted isolada;
 - [x] bridge e autenticação de serviço;
 - [x] identidade HMAC para o widget;
-- [x] webhook idempotente;
+- [x] webhook assíncrono, idempotente, com retry e dead-letter;
 - [x] atendimento humano pelo Chatwoot;
 - [x] segunda via via API OrbyCore;
 - [x] fluxo Wi-Fi redirecionado para tela segura;
-- [x] testes básicos e CI;
-- [ ] endpoints internos correspondentes no OrbyCore;
-- [ ] componente do widget no Portal SAC;
+- [x] testes automatizados e CI com build do container;
+- [x] endpoints internos correspondentes no OrbyCore;
+- [x] componente do widget e deep link Wi-Fi no Portal SAC;
+- [x] persistência e backup verificado de banco e anexos;
 - [ ] teste ponta a ponta com Chatwoot e OrbySync reais;
-- [ ] homologação de backup/restauração e carga.
+- [ ] homologação periódica de restauração e carga no ambiente do provedor.

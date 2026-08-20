@@ -1,6 +1,6 @@
 [project]
 name = "orbycore-chatwoot-bridge"
-version = "0.1.0"
+version = "1.0.0"
 description = "Integração segura entre OrbyCore e Chatwoot Community"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==8.4.1", "pytest-asyncio==1.1.0", "ruff==0.12.8"]
+dev = ["fakeredis==2.31.0", "pytest==8.4.1", "pytest-asyncio==1.1.0", "ruff==0.12.8"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

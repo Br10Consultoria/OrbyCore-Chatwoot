@@ -29,4 +29,4 @@ class ChatwootWebhook(BaseModel):
     conversation: dict[str, Any] = Field(default_factory=dict)
     sender: dict[str, Any] = Field(default_factory=dict)
     account: dict[str, Any] = Field(default_factory=dict)
-
+    inbox: dict[str, Any] = Field(default_factory=dict)

@@ -19,4 +19,3 @@ def require_service_token(authorization: str | None = Header(default=None)) -> N
 
 def identifier_hash(identifier: str, secret: str) -> str:
     return hmac.new(secret.encode(), identifier.encode(), hashlib.sha256).hexdigest()
-

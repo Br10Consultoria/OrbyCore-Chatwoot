@@ -8,8 +8,9 @@ from .config import Settings
 logger = logging.getLogger(__name__)
 
 MENU = (
-    "Olá! Posso ajudar automaticamente apenas com:\n"
+    "Olá! Posso ajudar automaticamente com:\n"
     "• /boleto — segunda via de boleto ou PIX\n"
+    "• /status — situação dos equipamentos vinculados\n"
     "• /wifi — alterar nome ou senha do Wi-Fi com segurança\n"
     "Para qualquer outro assunto, escreva sua mensagem e um atendente continuará o atendimento."
 )
@@ -26,6 +27,9 @@ def normalize_command(content: str, prefix: str = "/") -> str:
         "boleto": "invoice",
         "pix": "invoice",
         f"{prefix}boleto": "invoice",
+        "status": "status",
+        "equipamento": "status",
+        f"{prefix}status": "status",
         "trocar wifi": "wifi",
         "senha wifi": "wifi",
         "wifi": "wifi",
@@ -39,7 +43,9 @@ def customer_context(payload: dict[str, Any]) -> tuple[str, str] | None:
     identifier = str(sender.get("identifier") or "")
     if not identifier:
         identifier = str(
-            ((payload.get("conversation") or {}).get("meta") or {}).get("sender", {}).get("identifier")
+            ((payload.get("conversation") or {}).get("meta") or {})
+            .get("sender", {})
+            .get("identifier")
             or ""
         )
     parts = identifier.split(":", 2)
@@ -61,12 +67,38 @@ def invoice_message(items: Any) -> str:
             amount_text = f"R$ {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         except (InvalidOperation, ValueError):
             amount_text = "valor indisponível"
-        lines.append(f"\nFatura {item.get('number', '—')} · vencimento {item.get('due_date', '—')} · {amount_text}")
+        lines.append(
+            f"\nFatura {item.get('number', '—')} · vencimento {item.get('due_date', '—')} · {amount_text}"
+        )
         if item.get("payment_url"):
             lines.append(f"Boleto: {item['payment_url']}")
         if item.get("pix_emv"):
             lines.append(f"PIX copia e cola: {item['pix_emv']}")
     lines.append("\nOs dados vieram diretamente do OrbyCore.")
+    return "\n".join(lines)
+
+
+def equipment_message(items: Any) -> str:
+    equipment = items.get("equipment", items) if isinstance(items, dict) else items
+    if not isinstance(equipment, list) or not equipment:
+        return "Não encontrei equipamento gerenciado vinculado ao seu contrato."
+    lines = ["Situação dos seus equipamentos:"]
+    for item in equipment[:5]:
+        if not isinstance(item, dict):
+            continue
+        label = (
+            " ".join(
+                part
+                for part in (str(item.get("manufacturer") or ""), str(item.get("model") or ""))
+                if part
+            )
+            or "CPE"
+        )
+        lines.append(
+            f"• {label} · serial {item.get('serial_number') or 'não informado'} · "
+            f"status {item.get('status') or 'desconhecido'}"
+        )
+    lines.append("Para atualizar conexão, Wi-Fi ou reiniciar, use a Central do Assinante.")
     return "\n".join(lines)
 
 
@@ -78,7 +110,9 @@ async def process_automation(payload: dict[str, Any], settings: Settings) -> str
     message_type = payload.get("message_type")
     if message_type not in (0, "incoming"):
         return "ignored"
-    command = normalize_command(str(payload.get("content") or ""), settings.automation_trigger_prefix)
+    command = normalize_command(
+        str(payload.get("content") or ""), settings.automation_trigger_prefix
+    )
     if not command:
         return "human"
     conversation = payload.get("conversation") or {}
@@ -106,14 +140,19 @@ async def process_automation(payload: dict[str, Any], settings: Settings) -> str
         )
         return "wifi"
     try:
-        data = await OrbyCoreClient(settings).open_invoices(tenant_id, customer_id)
-        await chatwoot.send_message(conversation_id, invoice_message(data))
-        return "invoice"
+        orbycore = OrbyCoreClient(settings)
+        if command == "status":
+            data = await orbycore.devices(tenant_id, customer_id)
+            message = equipment_message(data)
+        else:
+            data = await orbycore.open_invoices(tenant_id, customer_id)
+            message = invoice_message(data)
+        await chatwoot.send_message(conversation_id, message)
+        return command
     except UpstreamError:
-        logger.exception("Falha ao consultar segunda via", extra={"tenant_id": tenant_id})
+        logger.exception("Falha ao consultar o OrbyCore", extra={"tenant_id": tenant_id})
         await chatwoot.send_message(
             conversation_id,
-            "Não consegui consultar a segunda via agora. Um atendente continuará o atendimento.",
+            "Não consegui consultar seus dados agora. Um atendente continuará o atendimento.",
         )
         return "upstream_error"
-

@@ -1,7 +1,7 @@
 name: orbycore-chatwoot
 
 x-chatwoot-base: &chatwoot-base
-  image: ${CHATWOOT_IMAGE:-chatwoot/chatwoot:latest-ce}
+  image: ${CHATWOOT_IMAGE:-chatwoot/chatwoot:v4.16.2-ce}
   env_file: .env
   restart: unless-stopped
   depends_on:
@@ -10,6 +10,7 @@ x-chatwoot-base: &chatwoot-base
     redis:
       condition: service_healthy
   networks: [internal]
+  volumes: [storage_data:/app/storage]
 
 services:
   rails:
@@ -22,9 +23,11 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       POSTGRES_HOST: postgres
+      POSTGRES_DATABASE: chatwoot
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
       ENABLE_ACCOUNT_SIGNUP: ${ENABLE_ACCOUNT_SIGNUP:-false}
       DEFAULT_LOCALE: ${DEFAULT_LOCALE:-pt_BR}
       MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL}
@@ -52,9 +55,11 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       POSTGRES_HOST: postgres
+      POSTGRES_DATABASE: chatwoot
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ACTIVE_STORAGE_SERVICE: ${ACTIVE_STORAGE_SERVICE:-local}
       MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL}
       SMTP_ADDRESS: ${SMTP_ADDRESS:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -105,6 +110,26 @@ services:
     depends_on:
       rails:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  bridge-worker:
+    build:
+      context: .
+      dockerfile: bridge/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["python", "-m", "app.worker"]
+    networks: [internal]
+    depends_on:
+      rails:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   caddy:
     image: caddy:2.10-alpine
@@ -127,6 +152,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  storage_data:
   caddy_data:
   caddy_config:
 

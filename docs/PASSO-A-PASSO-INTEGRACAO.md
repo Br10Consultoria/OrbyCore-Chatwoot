@@ -84,6 +84,8 @@ Na VM do OrbyCore, inclua no `.env`:
 ```env
 CHATWOOT_BRIDGE_URL=https://chat.provedor.com.br/orby-bridge
 CHATWOOT_BRIDGE_SERVICE_TOKEN=valor_do_BRIDGE_SERVICE_TOKEN
+CHATWOOT_PUBLIC_ORIGIN=https://chat.provedor.com.br
+CHATWOOT_PUBLIC_WS_ORIGIN=wss://chat.provedor.com.br
 ```
 
 Recrie backend e frontend:
@@ -99,14 +101,16 @@ protegem direções diferentes da comunicação.
 ## 8. Validar
 
 ```bash
-curl -fsS https://chat.provedor.com.br/orby-bridge/health
+curl -fsS https://chat.provedor.com.br/orby-bridge/ready
 docker compose ps
-docker compose logs --tail=100 bridge
+docker compose logs --tail=100 bridge bridge-worker
+sudo ./scripts/validar-integracao.sh
 ```
 
 No Portal SAC, entre com um cliente real e abra o chat. No Chatwoot, o contato
 deve ter identificador iniciado por `orby:`. Teste `/boleto`; a resposta deve
-listar somente as faturas abertas daquele cliente. `/wifi` deve direcionar para
+listar somente as faturas abertas daquele cliente. `/status` deve resumir apenas
+os equipamentos vinculados. `/wifi` deve direcionar para
 a tela segura do portal, sem pedir a senha na conversa.
 
 ## Valores globais e valores automáticos

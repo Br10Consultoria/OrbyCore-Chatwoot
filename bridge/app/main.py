@@ -4,23 +4,27 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from redis.asyncio import Redis
 
-from .automation import process_automation
 from .clients import OrbyCoreClient, UpstreamError
 from .config import get_settings
+from .queue import enqueue_webhook
 from .schemas import ChatwootWebhook, PortalIdentityRequest, WifiChangeRequest
 from .security import identifier_hash, require_service_token, safe_equal
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(application: FastAPI):
     settings = get_settings()
     logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(message)s")
-    yield
+    application.state.redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    try:
+        yield
+    finally:
+        await application.state.redis.aclose()
 
 
 app = FastAPI(
     title="OrbyCore Chatwoot Bridge",
-    version="0.1.0",
+    version="1.0.0",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -31,6 +35,18 @@ app = FastAPI(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/ready")
+async def ready(request: Request) -> dict[str, str]:
+    settings = get_settings()
+    if not settings.chatwoot_api_token or not settings.orbycore_service_token:
+        raise HTTPException(status_code=503, detail="Integração ainda não configurada")
+    try:
+        await request.app.state.redis.ping()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Redis indisponível") from exc
+    return {"status": "ready"}
 
 
 @app.post("/v1/portal/identity", dependencies=[Depends(require_service_token)])
@@ -54,23 +70,40 @@ async def portal_identity(payload: PortalIdentityRequest) -> dict[str, str | int
 @app.post("/v1/portal/wifi", dependencies=[Depends(require_service_token)])
 async def change_wifi(payload: WifiChangeRequest) -> dict:
     try:
-        return await OrbyCoreClient(get_settings()).change_wifi(payload.model_dump(exclude_none=True))
+        return await OrbyCoreClient(get_settings()).change_wifi(
+            payload.model_dump(exclude_none=True)
+        )
     except UpstreamError as exc:
         raise HTTPException(status_code=502, detail="Falha ao solicitar alteração Wi-Fi") from exc
 
 
 @app.post("/v1/chatwoot/webhooks/{token}", status_code=status.HTTP_202_ACCEPTED)
-async def chatwoot_webhook(token: str, payload: ChatwootWebhook, request: Request) -> dict[str, str]:
+async def chatwoot_webhook(
+    token: str, payload: ChatwootWebhook, request: Request
+) -> dict[str, str]:
     settings = get_settings()
     if not safe_equal(token, settings.chatwoot_webhook_token):
         raise HTTPException(status_code=401, detail="Webhook inválido")
-    if payload.id is not None:
-        redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    account_id = payload.account.get("id")
+    if payload.event == "message_created" and account_id is None:
+        raise HTTPException(status_code=403, detail="Conta Chatwoot ausente")
+    if account_id is not None:
         try:
-            first_delivery = await redis.set(f"chatwoot:event:{payload.id}", "1", ex=86400, nx=True)
-        finally:
-            await redis.aclose()
-        if not first_delivery:
-            return {"status": "accepted", "result": "duplicate"}
-    result = await process_automation(payload.model_dump(), settings)
-    return {"status": "accepted", "result": result}
+            account_matches = int(account_id) == settings.chatwoot_account_id
+        except (TypeError, ValueError):
+            account_matches = False
+        if not account_matches:
+            raise HTTPException(status_code=403, detail="Conta Chatwoot não autorizada")
+    conversation_inbox_id = payload.conversation.get("inbox_id")
+    inbox_id = conversation_inbox_id or payload.inbox.get("id")
+    if payload.event == "message_created" and inbox_id is None:
+        raise HTTPException(status_code=403, detail="Inbox Chatwoot ausente")
+    if inbox_id is not None:
+        try:
+            inbox_matches = int(inbox_id) == settings.chatwoot_inbox_id
+        except (TypeError, ValueError):
+            inbox_matches = False
+        if not inbox_matches:
+            raise HTTPException(status_code=403, detail="Inbox Chatwoot não autorizado")
+    queued = await enqueue_webhook(request.app.state.redis, payload.model_dump())
+    return {"status": "accepted", "result": "queued" if queued else "duplicate"}

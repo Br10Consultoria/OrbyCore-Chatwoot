@@ -1,4 +1,4 @@
-from app.automation import customer_context, invoice_message, normalize_command
+from app.automation import customer_context, equipment_message, invoice_message, normalize_command
 from app.security import identifier_hash, safe_equal
 
 
@@ -6,6 +6,7 @@ def test_only_expected_commands_are_automated():
     assert normalize_command("/boleto") == "invoice"
     assert normalize_command("segunda via") == "invoice"
     assert normalize_command("/wifi") == "wifi"
+    assert normalize_command("/status") == "status"
     assert normalize_command("preciso cancelar meu contrato") == ""
 
 
@@ -33,6 +34,24 @@ def test_invoice_response_contains_real_payment_data():
     assert "R$ 99,90" in message
     assert "https://pay.example/invoice" in message
     assert "000201TEST" in message
+
+
+def test_equipment_response_contains_only_operational_summary():
+    message = equipment_message(
+        {
+            "equipment": [
+                {
+                    "manufacturer": "Huawei",
+                    "model": "EG8145X6",
+                    "serial_number": "ABC1",
+                    "status": "online",
+                }
+            ]
+        }
+    )
+    assert "Huawei EG8145X6" in message
+    assert "ABC1" in message
+    assert "online" in message
 
 
 def test_hmac_identity_is_stable_and_secrets_compare_safely():

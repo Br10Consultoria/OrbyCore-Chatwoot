@@ -23,8 +23,9 @@ class Settings(BaseSettings):
     automation_enabled: bool = True
     automation_trigger_prefix: str = "/"
     request_timeout_seconds: float = 12.0
+    webhook_max_attempts: int = Field(default=5, ge=1, le=20)
+    webhook_max_backoff_seconds: int = Field(default=30, ge=1, le=300)
     log_level: str = "INFO"
-
 
 
 @lru_cache
