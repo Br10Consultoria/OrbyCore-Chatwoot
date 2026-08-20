@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/_health.sh
+source scripts/_health.sh
 
 [[ -f .env ]] || { echo "Execute scripts/instalar.sh primeiro." >&2; exit 1; }
 
@@ -49,6 +51,12 @@ account_id="$(env_value CHATWOOT_ACCOUNT_ID)"
 inbox_name="${CHATWOOT_INBOX_NAME:-Portal Sac}"
 integration_email="${CHATWOOT_INTEGRATION_EMAIL:-orby-integracao@${domain}}"
 rotate_hmac="${ROTATE_CHATWOOT_HMAC:-false}"
+rotate_webhook="${ROTATE_CHATWOOT_WEBHOOK:-false}"
+
+if [[ "$rotate_webhook" == "true" ]]; then
+  webhook_token="$(openssl rand -hex 48)"
+  set_env CHATWOOT_WEBHOOK_TOKEN "$webhook_token"
+fi
 
 if [[ -z "$domain" || -z "$portal_url" || -z "$webhook_token" ]]; then
   echo "CHATWOOT_DOMAIN, ORBYCORE_PORTAL_URL e CHATWOOT_WEBHOOK_TOKEN são obrigatórios." >&2
@@ -87,7 +95,10 @@ set_env CHATWOOT_INBOX_IDENTIFIER "$website_token"
 set_env CHATWOOT_INBOX_HMAC_TOKEN "$hmac_token"
 
 docker compose config --quiet
-docker compose up -d --build --force-recreate bridge bridge-worker caddy
+docker compose build bridge bridge-worker
+docker compose up -d --force-recreate --no-deps bridge bridge-worker caddy
+wait_for_bridge
+wait_for_public_bridge "https://${domain}/orby-bridge/ready"
 
 echo ""
 echo "Vinculação concluída automaticamente."
@@ -95,8 +106,7 @@ echo "Conta: ${account_id} | Caixa: ${inbox_id} | Webhook: ${webhook_id}"
 echo "Usuário técnico: ${integration_email}"
 echo "URL do webhook: ${webhook_url}"
 echo ""
-echo "Validação local:"
-echo "curl -fsS https://${domain}/orby-bridge/ready"
+echo "Bridge interno e endpoint público validados."
 echo ""
 echo "Para habilitar o widget, copie BRIDGE_SERVICE_TOKEN do .env desta VM para"
 echo "CHATWOOT_BRIDGE_SERVICE_TOKEN no .env do OrbyCore e configure:"

@@ -85,6 +85,8 @@ O procedimento completo, incluindo associação automática do assinante, está 
    IDs, gera os tokens, cria e vincula o usuário técnico e cadastra o webhook.
 3. Para rotacionar uma chave HMAC exposta, execute uma vez
    `sudo ROTATE_CHATWOOT_HMAC=true ./scripts/configurar-integracao.sh`.
+   Para rotacionar o token da URL do webhook, use
+   `sudo ROTATE_CHATWOOT_WEBHOOK=true ./scripts/configurar-integracao.sh`.
 4. O webhook criado automaticamente usa a URL:
 
 ```text

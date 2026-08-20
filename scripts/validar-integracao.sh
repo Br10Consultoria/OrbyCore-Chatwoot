@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/_health.sh
+source scripts/_health.sh
 
 [[ -f .env ]] || { echo "Arquivo .env não encontrado." >&2; exit 1; }
 env_value() { sed -n "s/^$1=//p" .env | tail -n 1; }
@@ -14,6 +16,7 @@ api_token="$(env_value CHATWOOT_API_TOKEN)"
 
 echo "[1/4] Validando serviços..."
 docker compose config --quiet
+wait_for_bridge
 docker compose ps
 [[ -z "$(docker compose ps --status exited -q)" ]] || {
   echo "Há containers encerrados." >&2
@@ -21,7 +24,7 @@ docker compose ps
 }
 
 echo "[2/4] Validando bridge e Redis..."
-curl -fsS "https://${domain}/orby-bridge/ready"
+wait_for_public_bridge "https://${domain}/orby-bridge/ready"
 dead_count="$(docker compose exec -T redis redis-cli -a "$(env_value REDIS_PASSWORD)" \
   --no-auth-warning LLEN orbybridge:webhooks:dead | tr -d '\r')"
 [[ "$dead_count" == "0" ]] || {

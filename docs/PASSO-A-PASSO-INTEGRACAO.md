@@ -67,6 +67,16 @@ Para trocar uma chave HMAC que tenha sido exposta, execute uma vez:
 sudo ROTATE_CHATWOOT_HMAC=true ./scripts/configurar-integracao.sh
 ```
 
+Para trocar também o token secreto da URL do webhook:
+
+```bash
+sudo ROTATE_CHATWOOT_WEBHOOK=true ./scripts/configurar-integracao.sh
+```
+
+O assistente aguarda o bridge interno e o endpoint HTTPS ficarem prontos. A
+recriação usa `--no-deps`, portanto não reinicia Rails, Sidekiq, PostgreSQL ou
+Redis durante uma simples alteração da integração.
+
 ## 6. Conferir o webhook
 
 O webhook e os eventos `message_created`, `conversation_created` e

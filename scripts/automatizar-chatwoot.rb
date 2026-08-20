@@ -80,9 +80,10 @@ result = ActiveRecord::Base.transaction do
 
   api_access_token = integration_user.access_token || AccessToken.create!(owner: integration_user)
   subscriptions = %w[message_created conversation_created conversation_status_changed]
-  webhook = account.webhooks.find_or_initialize_by(url: webhook_url)
+  webhook = account.webhooks.find_or_initialize_by(name: 'OrbyCore Bridge')
   webhook.assign_attributes(
     name: 'OrbyCore Bridge',
+    url: webhook_url,
     subscriptions: subscriptions,
     webhook_type: :account_type,
     inbox: nil
