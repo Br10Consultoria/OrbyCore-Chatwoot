@@ -6,11 +6,26 @@
 	respond @sensitive 404
 
 	handle_path /orby-bridge/* {
-		reverse_proxy bridge:8081
+		reverse_proxy {
+			# Containers podem trocar de IP após uma atualização. Resolve o nome
+			# pelo DNS interno do Docker continuamente para evitar 502 até o
+			# próximo restart do Caddy.
+			dynamic a bridge 8081 {
+				refresh 5s
+				resolvers 127.0.0.11
+				versions ipv4
+			}
+		}
 	}
 
 	handle {
-		reverse_proxy rails:3000
+		reverse_proxy {
+			dynamic a rails 3000 {
+				refresh 5s
+				resolvers 127.0.0.11
+				versions ipv4
+			}
+		}
 	}
 
 	header {
