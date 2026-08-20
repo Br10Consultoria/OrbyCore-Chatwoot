@@ -5,7 +5,7 @@ WORKDIR /app
 
 RUN addgroup --system bridge && adduser --system --ingroup bridge bridge
 COPY pyproject.toml ./
-COPY bridge/app ./app
+COPY bridge ./bridge
 RUN pip install --no-cache-dir .
 USER bridge
 
