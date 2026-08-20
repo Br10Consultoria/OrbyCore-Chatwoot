@@ -73,10 +73,14 @@ result = ActiveRecord::Base.transaction do
     integration_user.save!
   end
 
-  AccountUser.find_or_create_by!(account: account, user: integration_user) do |membership|
+  integration_membership = AccountUser.find_or_create_by!(account: account, user: integration_user) do |membership|
     membership.role = :agent
   end
+  integration_membership.update!(availability: :offline, auto_offline: true)
   InboxMember.find_or_create_by!(inbox: inbox, user: integration_user)
+  account.administrators.find_each do |administrator|
+    InboxMember.find_or_create_by!(inbox: inbox, user: administrator)
+  end
 
   api_access_token = integration_user.access_token || AccessToken.create!(owner: integration_user)
   subscriptions = %w[message_created conversation_created conversation_status_changed]

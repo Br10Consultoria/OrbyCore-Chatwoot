@@ -57,9 +57,9 @@ sudo ./scripts/configurar-integracao.sh
 
 O script localiza a única conta existente, cria ou atualiza a caixa `Portal Sac`,
 ativa Identity Validation, configura o domínio do portal, cria um usuário
-técnico, vincula o agente à caixa, cadastra o webhook, atualiza o `.env` e recria
-bridge/Caddy. Se houver mais de uma conta, defina antes `CHATWOOT_ACCOUNT_ID` no
-`.env`.
+técnico offline, vincula os administradores como atendentes da caixa, cadastra o
+webhook, atualiza o `.env` e recria bridge/Caddy. Se houver mais de uma conta,
+defina antes `CHATWOOT_ACCOUNT_ID` no `.env`.
 
 Para trocar uma chave HMAC que tenha sido exposta, execute uma vez:
 
