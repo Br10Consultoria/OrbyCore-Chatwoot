@@ -124,7 +124,20 @@ No Portal SAC, entre com um cliente real e abra o chat. No Chatwoot, o contato
 deve ter identificador iniciado por `orby:`. Teste `/boleto`; a resposta deve
 listar somente as faturas abertas daquele cliente. `/status` deve resumir apenas
 os equipamentos vinculados. `/wifi` deve direcionar para
-a tela segura do portal, sem pedir a senha na conversa.
+o formulário autenticado do Portal SAC. O menu clicável também deve criar e
+direcionar conversas para as equipes suporte técnico, financeiro e comercial.
+
+Para personalizar o widget, ajuste no `.env`:
+
+```env
+CHATWOOT_WIDGET_COLOR=#087FAE
+CHATWOOT_WIDGET_WELCOME_TITLE=Olá! Como podemos ajudar?
+CHATWOOT_WIDGET_WELCOME_TAGLINE=Suporte técnico, financeiro e contratação em um só lugar.
+```
+
+Depois execute novamente `sudo ./scripts/configurar-integracao.sh`. O processo é
+idempotente: preserva a caixa existente, reconcilia equipes e membros e atualiza
+o bridge com os IDs corretos.
 
 ## Valores globais e valores automáticos
 

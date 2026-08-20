@@ -94,7 +94,9 @@ https://<CHATWOOT_DOMAIN>/orby-bridge/v1/chatwoot/webhooks/<CHATWOOT_WEBHOOK_TOK
 ```
 
 Os eventos `message_created`, `conversation_created` e
-`conversation_status_changed` são assinados automaticamente.
+`conversation_status_changed` são assinados automaticamente. O evento de criação
+abre o menu clicável; as escolhas direcionam a conversa para as equipes
+**suporte técnico**, **financeiro** ou **comercial**, criadas pelo próprio script.
 
 5. O próprio assistente reinicia o bridge e o worker após alterar o `.env`.
 
@@ -102,14 +104,31 @@ Os eventos `message_created`, `conversation_created` e
 docker compose up -d --build bridge bridge-worker
 ```
 
-## Comandos do autosserviço
+## Menu e autosserviço
 
-- `/menu`: apresenta as opções disponíveis;
+- `/menu`, `oi`, `olá`, `bom dia`, `boa tarde` ou `boa noite`: apresenta o menu clicável;
 - `/boleto`, `boleto`, `pix` ou `segunda via`: consulta as faturas abertas no OrbyCore;
 - `/status`: consulta no OrbyCore a situação resumida dos equipamentos do cliente;
-- `/wifi`, `wifi` ou `senha wifi`: envia o cliente para a tela segura do Portal SAC.
+- `/wifi`, `wifi` ou `senha wifi`: abre o submenu de nome, senha e estado das redes;
+- o menu técnico consulta conexão e dispositivos conectados e direciona atualização,
+  reinicialização e Wi-Fi para a tela autenticada do Portal SAC;
+- assuntos financeiros, técnicos e comerciais são atribuídos à equipe correta.
 
-Mensagens diferentes não recebem resposta automática e permanecem na fila humana.
+Mensagens livres são classificadas somente por assunto e encaminhadas à fila humana;
+o bot não inventa respostas nem executa ações destrutivas.
+
+Nome, texto de boas-vindas e cor do widget podem ser definidos no `.env` por
+`CHATWOOT_WIDGET_WELCOME_TITLE`, `CHATWOOT_WIDGET_WELCOME_TAGLINE` e
+`CHATWOOT_WIDGET_COLOR`. Execute `./scripts/configurar-integracao.sh` novamente
+para aplicar a personalização e reconciliar equipes, membros e roteamento.
+
+### Limites das ações ACS para o assinante
+
+O menu expõe somente consulta de estado, contagem de dispositivos, atualização
+de dados, Wi-Fi e reinicialização. Senhas nunca passam pela conversa: o cliente é
+levado ao formulário autenticado, que aplica confirmação, rate limit e auditoria.
+Reset de fábrica, firmware, PPPoE, VLAN e parâmetros TR-069 arbitrários permanecem
+restritos aos operadores do provedor.
 
 ## API do bridge
 
@@ -158,6 +177,8 @@ pytest -q
 - [x] fluxo Wi-Fi redirecionado para tela segura;
 - [x] testes automatizados e CI com build do container;
 - [x] endpoints internos correspondentes no OrbyCore;
+- [x] menus clicáveis, personalização do widget e roteamento automático por equipe;
+- [x] autosserviço ACS seguro para status, Wi-Fi, atualização, clientes e reinício;
 - [x] componente do widget e deep link Wi-Fi no Portal SAC;
 - [x] persistência e backup verificado de banco e anexos;
 - [ ] teste ponta a ponta com Chatwoot e OrbySync reais;

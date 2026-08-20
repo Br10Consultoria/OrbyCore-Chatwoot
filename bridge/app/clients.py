@@ -35,7 +35,14 @@ class ChatwootClient(BaseClient):
     def headers(self) -> dict[str, str]:
         return {"api_access_token": self.settings.chatwoot_api_token}
 
-    async def send_message(self, conversation_id: int, content: str) -> Any:
+    async def send_message(
+        self,
+        conversation_id: int,
+        content: str,
+        *,
+        content_type: str = "text",
+        content_attributes: dict[str, Any] | None = None,
+    ) -> Any:
         url = (
             f"{self.settings.chatwoot_api_url.rstrip('/')}/api/v1/accounts/"
             f"{self.settings.chatwoot_account_id}/conversations/{conversation_id}/messages"
@@ -44,8 +51,23 @@ class ChatwootClient(BaseClient):
             "POST",
             url,
             headers=self.headers,
-            json={"content": content, "message_type": "outgoing", "private": False},
+            json={
+                "content": content,
+                "message_type": "outgoing",
+                "private": False,
+                "content_type": content_type,
+                "content_attributes": content_attributes or {},
+            },
         )
+
+    async def assign_team(self, conversation_id: int, team_id: int) -> Any:
+        if not team_id:
+            return {}
+        url = (
+            f"{self.settings.chatwoot_api_url.rstrip('/')}/api/v1/accounts/"
+            f"{self.settings.chatwoot_account_id}/conversations/{conversation_id}/assignments"
+        )
+        return await self.request("POST", url, headers=self.headers, json={"team_id": team_id})
 
 
 class OrbyCoreClient(BaseClient):

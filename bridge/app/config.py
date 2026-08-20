@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     chatwoot_inbox_id: int = 1
     chatwoot_inbox_identifier: str = ""
     chatwoot_inbox_hmac_token: str = ""
+    chatwoot_team_support_id: int = 0
+    chatwoot_team_financial_id: int = 0
+    chatwoot_team_commercial_id: int = 0
     orbycore_api_url: str = "http://host.docker.internal:8000"
     orbycore_portal_url: str = "http://host.docker.internal:5173/portal"
     orbycore_service_token: str = ""

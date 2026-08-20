@@ -17,6 +17,13 @@ portal_url = required_env('ORBY_PORTAL_URL')
 webhook_url = required_env('ORBY_WEBHOOK_URL')
 integration_email = required_env('ORBY_INTEGRATION_EMAIL').downcase
 rotate_hmac = ActiveModel::Type::Boolean.new.cast(ENV.fetch('ORBY_ROTATE_HMAC', 'false'))
+widget_color = ENV.fetch('ORBY_WIDGET_COLOR', '#087FAE').strip
+welcome_title = ENV.fetch('ORBY_WIDGET_WELCOME_TITLE', 'Olá! Como podemos ajudar?').strip
+welcome_tagline = ENV.fetch(
+  'ORBY_WIDGET_WELCOME_TAGLINE',
+  'Suporte técnico, financeiro e contratação em um só lugar.'
+).strip
+raise 'ORBY_WIDGET_COLOR precisa usar o formato hexadecimal #RRGGBB' unless widget_color.match?(/\A#[0-9a-fA-F]{6}\z/)
 
 portal_uri = URI.parse(portal_url)
 raise 'ORBY_PORTAL_URL precisa usar http ou https' unless %w[http https].include?(portal_uri.scheme) && portal_uri.host
@@ -56,7 +63,11 @@ result = ActiveRecord::Base.transaction do
   channel.update!(
     website_url: portal_url,
     allowed_domains: portal_origin,
-    hmac_mandatory: true
+    hmac_mandatory: true,
+    widget_color: widget_color,
+    welcome_title: welcome_title,
+    welcome_tagline: welcome_tagline,
+    reply_time: :in_a_few_minutes
   )
   channel.regenerate_website_token if channel.website_token.blank?
   channel.regenerate_hmac_token if rotate_hmac || channel.hmac_token.blank?
@@ -78,8 +89,27 @@ result = ActiveRecord::Base.transaction do
   end
   integration_membership.update!(availability: :offline, auto_offline: true)
   InboxMember.find_or_create_by!(inbox: inbox, user: integration_user)
+  inbox.update!(
+    greeting_enabled: true,
+    greeting_message: 'Escolha uma opção no menu para direcionarmos seu atendimento.',
+    enable_auto_assignment: false,
+    allow_messages_after_resolved: true
+  )
+
+  teams = {
+    support: account.teams.find_or_create_by!(name: 'suporte técnico'),
+    financial: account.teams.find_or_create_by!(name: 'financeiro'),
+    commercial: account.teams.find_or_create_by!(name: 'comercial')
+  }
+  teams[:support].update!(description: 'Conexão, Wi-Fi, equipamentos e atendimento técnico.', icon: 'headset', icon_color: '#087FAE')
+  teams[:financial].update!(description: 'Faturas, pagamentos, PIX e negociação.', icon: 'credit-card', icon_color: '#E87822')
+  teams[:commercial].update!(description: 'Planos, contratação e mudanças de serviço.', icon: 'briefcase', icon_color: '#1C9B72')
+
   account.administrators.find_each do |administrator|
     InboxMember.find_or_create_by!(inbox: inbox, user: administrator)
+    teams.each_value do |team|
+      TeamMember.find_or_create_by!(team: team, user: administrator)
+    end
   end
 
   api_access_token = integration_user.access_token || AccessToken.create!(owner: integration_user)
@@ -102,7 +132,10 @@ result = ActiveRecord::Base.transaction do
     hmac_token: channel.hmac_token,
     integration_email: integration_user.email,
     webhook_id: webhook.id,
-    portal_origin: portal_origin
+    portal_origin: portal_origin,
+    team_support_id: teams[:support].id,
+    team_financial_id: teams[:financial].id,
+    team_commercial_id: teams[:commercial].id
   }
 end
 puts "ORBYCHAT_CONFIG=#{JSON.generate(result)}"
