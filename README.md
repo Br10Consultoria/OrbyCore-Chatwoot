@@ -80,20 +80,21 @@ O procedimento completo, incluindo associação automática do assinante, está 
 [docs/PASSO-A-PASSO-INTEGRACAO.md](docs/PASSO-A-PASSO-INTEGRACAO.md).
 
 1. Acesse `https://<CHATWOOT_DOMAIN>` e crie o administrador.
-2. Crie uma caixa **Website** chamada `Portal SAC`.
-3. Ative **Identity Validation** e copie o HMAC Token para `CHATWOOT_INBOX_HMAC_TOKEN`.
-4. Copie o Website Token para `CHATWOOT_INBOX_IDENTIFIER`.
-5. Crie um usuário exclusivo de integração e copie seu API Access Token para `CHATWOOT_API_TOKEN`.
-6. Confirme Account ID e Inbox ID no `.env`.
-7. Cadastre o webhook:
+2. Execute `sudo ./scripts/configurar-integracao.sh`. O assistente cria ou
+   reutiliza a caixa Website `Portal Sac`, ativa Identity Validation, descobre os
+   IDs, gera os tokens, cria e vincula o usuário técnico e cadastra o webhook.
+3. Para rotacionar uma chave HMAC exposta, execute uma vez
+   `sudo ROTATE_CHATWOOT_HMAC=true ./scripts/configurar-integracao.sh`.
+4. O webhook criado automaticamente usa a URL:
 
 ```text
 https://<CHATWOOT_DOMAIN>/orby-bridge/v1/chatwoot/webhooks/<CHATWOOT_WEBHOOK_TOKEN>
 ```
 
-Assine pelo menos `message_created`, `conversation_created` e `conversation_status_changed`.
+Os eventos `message_created`, `conversation_created` e
+`conversation_status_changed` são assinados automaticamente.
 
-8. Reinicie o bridge e o worker após alterar o `.env`:
+5. O próprio assistente reinicia o bridge e o worker após alterar o `.env`.
 
 ```bash
 docker compose up -d --build bridge bridge-worker

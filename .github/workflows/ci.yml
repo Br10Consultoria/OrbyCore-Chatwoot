@@ -20,6 +20,8 @@ jobs:
       - run: pytest -q
       - name: Validar scripts
         run: bash -n scripts/*.sh
+      - name: Validar automação Rails
+        run: ruby -c scripts/automatizar-chatwoot.rb
       - name: Validar Compose
         run: cp .env.example .env && docker compose config --quiet
       - name: Validar Caddy

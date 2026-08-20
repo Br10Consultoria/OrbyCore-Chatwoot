@@ -44,13 +44,9 @@ automaticamente. SMTP pode ser preenchido posteriormente no `.env`.
 ## 4. Criar a conta e a caixa no Chatwoot
 
 1. Abra `https://chat.provedor.com.br` e crie o administrador.
-2. Crie uma caixa do tipo **Website**, chamada **Portal SAC**.
-3. Ative **Identity Validation**.
-4. Guarde o `Website Token`, o `HMAC Token`, o `Account ID` e o `Inbox ID`.
-5. Crie um usuário exclusivo para integração e copie seu `API Access Token`.
-
-Esses valores não podem ser conhecidos na primeira etapa porque o próprio
-Chatwoot só os cria depois que a conta e a caixa existem.
+2. A caixa **Website**, o usuário técnico, os tokens, o HMAC e o webhook podem
+   ser criados automaticamente na etapa seguinte. Se já existir uma caixa
+   chamada **Portal Sac**, ela será reutilizada.
 
 ## 5. Executar o assistente de vinculação
 
@@ -59,16 +55,23 @@ cd /opt/orbycore-chatwoot
 sudo ./scripts/configurar-integracao.sh
 ```
 
-Informe os cinco valores obtidos na etapa anterior. O script atualiza o `.env`,
-recria somente bridge/Caddy e mostra a URL completa do webhook.
+O script localiza a única conta existente, cria ou atualiza a caixa `Portal Sac`,
+ativa Identity Validation, configura o domínio do portal, cria um usuário
+técnico, vincula o agente à caixa, cadastra o webhook, atualiza o `.env` e recria
+bridge/Caddy. Se houver mais de uma conta, defina antes `CHATWOOT_ACCOUNT_ID` no
+`.env`.
 
-## 6. Cadastrar o webhook
+Para trocar uma chave HMAC que tenha sido exposta, execute uma vez:
 
-No Chatwoot, cadastre a URL mostrada pelo script e marque:
+```bash
+sudo ROTATE_CHATWOOT_HMAC=true ./scripts/configurar-integracao.sh
+```
 
-- `message_created`;
-- `conversation_created`;
-- `conversation_status_changed`.
+## 6. Conferir o webhook
+
+O webhook e os eventos `message_created`, `conversation_created` e
+`conversation_status_changed` são cadastrados automaticamente. A URL e o ID são
+mostrados pelo assistente para conferência.
 
 ## 7. Habilitar o widget no Portal SAC do OrbyCore
 

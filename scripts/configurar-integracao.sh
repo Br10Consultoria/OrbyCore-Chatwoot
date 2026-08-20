@@ -4,19 +4,6 @@ cd "$(dirname "$0")/.."
 
 [[ -f .env ]] || { echo "Execute scripts/instalar.sh primeiro." >&2; exit 1; }
 
-ask() {
-  local label="$1" default_value="${2:-}" answer=""
-  read -r -p "$label${default_value:+ [$default_value]}: " answer
-  printf '%s' "${answer:-$default_value}"
-}
-
-ask_secret() {
-  local label="$1" answer=""
-  read -r -s -p "$label: " answer
-  echo >&2
-  printf '%s' "$answer"
-}
-
 set_env() {
   ENV_KEY="$1" ENV_VALUE="$2" python3 - <<'PY'
 import os
@@ -37,21 +24,61 @@ path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
 }
 
+env_value() {
+  sed -n "s/^$1=//p" .env | tail -n 1
+}
+
+json_value() {
+  CONFIG_JSON="$1" CONFIG_KEY="$2" python3 - <<'PY'
+import json
+import os
+
+print(json.loads(os.environ["CONFIG_JSON"])[os.environ["CONFIG_KEY"]])
+PY
+}
+
 echo ""
 echo "Vinculação Chatwoot ↔ OrbyCore"
-echo "Os valores abaixo são obtidos no painel do Chatwoot depois da criação do administrador."
+echo "A caixa, usuário técnico, HMAC, tokens, agente e webhook serão configurados automaticamente."
 echo ""
 
-account_id="$(ask "Account ID" "1")"
-inbox_id="$(ask "Inbox ID da caixa Portal SAC" "1")"
-api_token="$(ask_secret "API Access Token do usuário de integração")"
-website_token="$(ask_secret "Website Token da caixa Portal SAC")"
-hmac_token="$(ask_secret "HMAC Token de Identity Validation")"
+domain="$(env_value CHATWOOT_DOMAIN)"
+portal_url="$(env_value ORBYCORE_PORTAL_URL)"
+webhook_token="$(env_value CHATWOOT_WEBHOOK_TOKEN)"
+account_id="$(env_value CHATWOOT_ACCOUNT_ID)"
+inbox_name="${CHATWOOT_INBOX_NAME:-Portal Sac}"
+integration_email="${CHATWOOT_INTEGRATION_EMAIL:-orby-integracao@${domain}}"
+rotate_hmac="${ROTATE_CHATWOOT_HMAC:-false}"
 
-if [[ -z "$api_token" || -z "$website_token" || -z "$hmac_token" ]]; then
-  echo "API Access Token, Website Token e HMAC Token são obrigatórios." >&2
+if [[ -z "$domain" || -z "$portal_url" || -z "$webhook_token" ]]; then
+  echo "CHATWOOT_DOMAIN, ORBYCORE_PORTAL_URL e CHATWOOT_WEBHOOK_TOKEN são obrigatórios." >&2
   exit 1
 fi
+
+webhook_url="https://${domain}/orby-bridge/v1/chatwoot/webhooks/${webhook_token}"
+runner_output="$(docker compose exec -T \
+  -e ORBY_ACCOUNT_ID="$account_id" \
+  -e ORBY_INBOX_NAME="$inbox_name" \
+  -e ORBY_PORTAL_URL="$portal_url" \
+  -e ORBY_WEBHOOK_URL="$webhook_url" \
+  -e ORBY_INTEGRATION_EMAIL="$integration_email" \
+  -e ORBY_ROTATE_HMAC="$rotate_hmac" \
+  rails bundle exec rails runner - < scripts/automatizar-chatwoot.rb)"
+
+config_json="$(printf '%s\n' "$runner_output" | sed -n 's/^ORBYCHAT_CONFIG=//p' | tail -n 1)"
+if [[ -z "$config_json" ]]; then
+  echo "$runner_output" >&2
+  echo "O Chatwoot não retornou os dados da vinculação." >&2
+  exit 1
+fi
+
+account_id="$(json_value "$config_json" account_id)"
+inbox_id="$(json_value "$config_json" inbox_id)"
+api_token="$(json_value "$config_json" api_token)"
+website_token="$(json_value "$config_json" website_token)"
+hmac_token="$(json_value "$config_json" hmac_token)"
+integration_email="$(json_value "$config_json" integration_email)"
+webhook_id="$(json_value "$config_json" webhook_id)"
 
 set_env CHATWOOT_ACCOUNT_ID "$account_id"
 set_env CHATWOOT_INBOX_ID "$inbox_id"
@@ -62,13 +89,11 @@ set_env CHATWOOT_INBOX_HMAC_TOKEN "$hmac_token"
 docker compose config --quiet
 docker compose up -d --build --force-recreate bridge bridge-worker caddy
 
-domain="$(grep '^CHATWOOT_DOMAIN=' .env | cut -d= -f2-)"
-webhook_token="$(grep '^CHATWOOT_WEBHOOK_TOKEN=' .env | cut -d= -f2-)"
-
 echo ""
-echo "Vinculação gravada. Cadastre no Chatwoot o webhook:"
-echo "https://${domain}/orby-bridge/v1/chatwoot/webhooks/${webhook_token}"
-echo "Eventos: message_created, conversation_created e conversation_status_changed."
+echo "Vinculação concluída automaticamente."
+echo "Conta: ${account_id} | Caixa: ${inbox_id} | Webhook: ${webhook_id}"
+echo "Usuário técnico: ${integration_email}"
+echo "URL do webhook: ${webhook_url}"
 echo ""
 echo "Validação local:"
 echo "curl -fsS https://${domain}/orby-bridge/ready"
