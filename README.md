@@ -98,6 +98,13 @@ Os eventos `message_created`, `conversation_created` e
 abre o menu clicável; as escolhas direcionam a conversa para as equipes
 **suporte técnico**, **financeiro** ou **comercial**, criadas pelo próprio script.
 
+O script também cria e vincula um **AgentBot** ao inbox do Portal SAC. O bridge
+usa o token desse bot para que mensagens `input_select` sejam renderizadas como
+opções clicáveis no widget. A saudação textual nativa do inbox é desativada,
+evitando que uma falha do webhook pareça ser um menu sem botões. Em instalações
+atualizadas, execute novamente `scripts/configurar-integracao.sh` uma vez para
+criar e vincular o AgentBot.
+
 5. O próprio assistente reinicia o bridge e o worker após alterar o `.env`.
 
 ```bash

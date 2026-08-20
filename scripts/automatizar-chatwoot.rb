@@ -90,11 +90,22 @@ result = ActiveRecord::Base.transaction do
   integration_membership.update!(availability: :offline, auto_offline: true)
   InboxMember.find_or_create_by!(inbox: inbox, user: integration_user)
   inbox.update!(
-    greeting_enabled: true,
-    greeting_message: 'Escolha uma opção no menu para direcionarmos seu atendimento.',
+    # O menu interativo é enviado pelo AgentBot. O greeting textual do inbox
+    # escondia a falha do webhook e fazia o widget exibir apenas uma frase.
+    greeting_enabled: false,
+    greeting_message: '',
     enable_auto_assignment: false,
     allow_messages_after_resolved: true
   )
+
+  agent_bot = account.agent_bots.find_or_initialize_by(name: 'OrbyCore Assistente')
+  agent_bot.assign_attributes(
+    description: 'Menus do Portal SAC e automações integradas ao OrbyCore/OrbySync.',
+    outgoing_url: webhook_url,
+    bot_type: :webhook
+  )
+  agent_bot.save!
+  AgentBotInbox.find_or_create_by!(agent_bot: agent_bot, inbox: inbox)
 
   teams = {
     support: account.teams.find_or_create_by!(name: 'suporte técnico'),
@@ -112,7 +123,9 @@ result = ActiveRecord::Base.transaction do
     end
   end
 
-  api_access_token = integration_user.access_token || AccessToken.create!(owner: integration_user)
+  # Mensagens criadas com o token do bot preservam sender_type=AgentBot e são
+  # renderizadas pelo widget como input_select clicável.
+  api_access_token = agent_bot.access_token || AccessToken.create!(owner: agent_bot)
   subscriptions = %w[message_created conversation_created conversation_status_changed]
   webhook = account.webhooks.find_or_initialize_by(name: 'OrbyCore Bridge')
   webhook.assign_attributes(
@@ -127,6 +140,7 @@ result = ActiveRecord::Base.transaction do
   {
     account_id: account.id,
     inbox_id: inbox.id,
+    agent_bot_id: agent_bot.id,
     api_token: api_access_token.token,
     website_token: channel.website_token,
     hmac_token: channel.hmac_token,
