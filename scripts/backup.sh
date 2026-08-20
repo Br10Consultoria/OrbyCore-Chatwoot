@@ -14,8 +14,9 @@ docker compose exec -T postgres pg_dump -U postgres -d chatwoot -Fc > "$backup_d
 docker compose exec -T postgres pg_restore --list < "$backup_dir/chatwoot.dump" >/dev/null
 
 echo "[OrbyChat] Exportando anexos do Active Storage..."
-docker compose run --quiet-pull --rm --no-deps -T --entrypoint tar rails \
-  -C /app/storage -czf - . > "$backup_dir/storage.tar.gz"
+# Lê o container Rails atualmente em execução. Isso também preserva anexos de
+# instalações antigas, anteriores ao volume nomeado storage_data.
+docker compose exec -T rails tar -C /app/storage -czf - . > "$backup_dir/storage.tar.gz"
 [[ -s "$backup_dir/storage.tar.gz" ]] || { echo "Backup do storage vazio." >&2; exit 1; }
 tar -tzf "$backup_dir/storage.tar.gz" >/dev/null
 

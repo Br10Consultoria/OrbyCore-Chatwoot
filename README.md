@@ -137,7 +137,7 @@ pytest -q
 ./scripts/atualizar.sh
 ```
 
-`atualizar.sh` exige uma instalação existente, cria e verifica backup do PostgreSQL e dos anexos antes do `git pull`, aplica migrações e recria os serviços sem executar novamente o instalador. Para restaurar: `./scripts/restaurar.sh backups/AAAAMMDD-HHMMSS`.
+`atualizar.sh` exige uma instalação existente, cria e verifica backup do PostgreSQL e dos anexos antes do `git pull`, migra anexos de containers antigos para o volume persistente, aplica as migrações e recria os serviços sem executar novamente o instalador. Para restaurar: `./scripts/restaurar.sh backups/AAAAMMDD-HHMMSS`.
 
 ## Estado do MVP
 
