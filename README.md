@@ -69,6 +69,11 @@ chmod +x scripts/*.sh
 ./scripts/instalar.sh
 ```
 
+Em Ubuntu ou Debian, o instalador configura o repositório oficial e instala
+Docker Engine, Buildx e o plugin Compose quando ainda não estiverem disponíveis.
+Depois ele prepara banco, Redis, Chatwoot, bridge, worker e proxy HTTPS e aguarda
+os serviços iniciarem corretamente.
+
 ## Configuração inicial no Chatwoot
 
 O procedimento completo, incluindo associação automática do assinante, está em
