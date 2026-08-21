@@ -212,11 +212,22 @@ async def _send_menu(
     content: str,
     items: list[dict[str, str]],
 ) -> None:
-    await chatwoot.send_message(
+    message = await chatwoot.send_message(
         conversation_id,
         content,
         content_type="input_select",
         content_attributes={"items": items},
+    )
+    if isinstance(message, dict):
+        returned_type = message.get("content_type")
+        returned_items = (message.get("content_attributes") or {}).get("items")
+        if returned_type not in ("input_select", 4) or not returned_items:
+            raise UpstreamError(
+                "Chatwoot não preservou content_type=input_select ou os itens do menu"
+            )
+    logger.info(
+        "Menu interativo enviado",
+        extra={"conversation_id": conversation_id, "items": len(items)},
     )
 
 

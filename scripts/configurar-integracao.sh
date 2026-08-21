@@ -103,6 +103,7 @@ team_commercial_id="$(json_value "$config_json" team_commercial_id)"
 
 set_env CHATWOOT_ACCOUNT_ID "$account_id"
 set_env CHATWOOT_INBOX_ID "$inbox_id"
+set_env CHATWOOT_AGENT_BOT_ID "$agent_bot_id"
 set_env CHATWOOT_API_TOKEN "$api_token"
 set_env CHATWOOT_INBOX_IDENTIFIER "$website_token"
 set_env CHATWOOT_INBOX_HMAC_TOKEN "$hmac_token"
