@@ -52,6 +52,7 @@ async def process_envelope(redis: Redis, raw: str, envelope: dict[str, Any]) -> 
         pipe.lrem(PROCESSING_KEY, 1, raw)
         pipe.set(event_key, f"done:{result}", ex=EVENT_TTL_SECONDS)
         await pipe.execute()
+    logger.info("Webhook processado", extra={"event_key": event_key, "result": result})
 
 
 async def run_worker() -> None:

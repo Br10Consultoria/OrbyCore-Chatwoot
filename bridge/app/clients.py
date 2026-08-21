@@ -47,17 +47,25 @@ class ChatwootClient(BaseClient):
             f"{self.settings.chatwoot_api_url.rstrip('/')}/api/v1/accounts/"
             f"{self.settings.chatwoot_account_id}/conversations/{conversation_id}/messages"
         )
+        payload: dict[str, Any] = {
+            "content": content,
+            "message_type": "outgoing",
+            "private": False,
+            "content_type": content_type,
+            "content_attributes": content_attributes or {},
+        }
+        if self.settings.chatwoot_agent_bot_id:
+            payload.update(
+                {
+                    "sender_type": "AgentBot",
+                    "sender_id": self.settings.chatwoot_agent_bot_id,
+                }
+            )
         return await self.request(
             "POST",
             url,
             headers=self.headers,
-            json={
-                "content": content,
-                "message_type": "outgoing",
-                "private": False,
-                "content_type": content_type,
-                "content_attributes": content_attributes or {},
-            },
+            json=payload,
         )
 
     async def assign_team(self, conversation_id: int, team_id: int) -> Any:

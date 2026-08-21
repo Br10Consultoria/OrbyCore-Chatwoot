@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     chatwoot_account_id: int = 1
     chatwoot_api_token: str = ""
     chatwoot_inbox_id: int = 1
+    chatwoot_agent_bot_id: int = 0
     chatwoot_inbox_identifier: str = ""
     chatwoot_inbox_hmac_token: str = ""
     chatwoot_team_support_id: int = 0
