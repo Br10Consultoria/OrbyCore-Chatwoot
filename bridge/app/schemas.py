@@ -20,6 +20,19 @@ class WifiChangeRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8, max_length=63)
 
 
+class PortalMobileSessionRequest(PortalIdentityRequest):
+    """Payload interno, enviado pelo Portal autenticado com ServiceToken."""
+
+
+class MobileWifiChangeRequest(BaseModel):
+    device_id: str = Field(min_length=1, max_length=120)
+    network: str = Field(pattern="^(2.4ghz|5ghz)$")
+    ssid: str | None = Field(default=None, min_length=1, max_length=32)
+    password: str | None = Field(default=None, min_length=8, max_length=63)
+    enabled: bool | None = None
+    wlan_path: str | None = Field(default=None, max_length=255)
+
+
 class ChatwootWebhook(BaseModel):
     event: str
     id: int | None = None

@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     orbycore_api_url: str = "http://host.docker.internal:8000"
     orbycore_portal_url: str = "http://host.docker.internal:5173/portal"
     orbycore_service_token: str = ""
+    mobile_session_hmac_secret: str = Field(default="", min_length=32)
+    mobile_session_issuer: str = "orbycore-chatwoot-bridge"
+    mobile_session_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     redis_url: str = "redis://:change-me@bridge-redis:6379/0"
     automation_enabled: bool = True
     automation_trigger_prefix: str = "/"

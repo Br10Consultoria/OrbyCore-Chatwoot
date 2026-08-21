@@ -6,6 +6,9 @@
 	respond @sensitive 404
 
 	handle_path /orby-bridge/* {
+		# Expõe /orby-bridge/v1/mobile/... ao aplicativo. A rota de emissão
+		# de sessão continua protegida por ServiceToken; os três proxies
+		# aceitam somente Bearer JWT curto assinado pelo bridge.
 		reverse_proxy {
 			# Containers podem trocar de IP após uma atualização. Resolve o nome
 			# pelo DNS interno do Docker continuamente para evitar 502 até o
@@ -35,4 +38,3 @@
 		-Server
 	}
 }
-

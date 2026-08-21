@@ -155,6 +155,10 @@ Recebe a solicitação enviada pelo formulário autenticado e a encaminha ao Orb
 
 O contrato completo está em [docs/CONTRATO-ORBYCORE.md](docs/CONTRATO-ORBYCORE.md).
 
+### Proxies móveis do SAC Mobile
+
+O bridge expõe faturas, equipamentos e alteração de Wi-Fi para o aplicativo sob `/orby-bridge/v1/mobile/autoservice/*`. Esses caminhos aceitam exclusivamente uma sessão curta assinada pelo bridge; o Portal SAC autenticado é o único consumidor permitido de `POST /orby-bridge/v1/portal/mobile/sessions`, que emite a sessão. A configuração, as variáveis e o procedimento de ativação estão em [docs/PROXIES-MOVEIS-PORTAL-SAC.md](docs/PROXIES-MOVEIS-PORTAL-SAC.md).
+
 ## Testes
 
 ```bash
